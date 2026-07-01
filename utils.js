@@ -23,33 +23,20 @@ class Utils {
     return a + (b - a) * Utils.clamp(t, 0, 1);
   }
 
-  static map(value, inMin, inMax, outMin, outMax) {
+  static mapRange(value, inMin, inMax, outMin, outMax) {
     if (inMax === inMin) return outMin;
     const t = (value - inMin) / (inMax - inMin);
     return Utils.lerp(outMin, outMax, t);
   }
 
-  static degToRad(degrees) {
-    return (degrees * Math.PI) / 180;
-  }
-
-  static normalizeLabel(str) {
-    if (!str) return str;
-    return String(str)
+  static formatLabel(value) {
+    return String(value || "")
       .replaceAll("_", " ")
       .replace(/\b\w/g, char => char.toUpperCase());
   }
 
-  static handleString(str) {
-    return Utils.normalizeLabel(str);
-  }
-
-  static HandleString(str) {
-    return Utils.normalizeLabel(str);
-  }
-
   static getWindVector(windDirection, windPower) {
-    const p = windPower / 100;
+    const p = Utils.clamp(windPower, 0, 100) / 100;
 
     const vectors = {
       right: { x: 7 * p, y: 0, swirl: false },
@@ -60,5 +47,10 @@ class Utils {
     };
 
     return vectors[windDirection] || { x: 0, y: 0, swirl: false };
+  }
+
+  static wrap(value, min, max) {
+    const size = max - min;
+    return ((((value - min) % size) + size) % size) + min;
   }
 }
