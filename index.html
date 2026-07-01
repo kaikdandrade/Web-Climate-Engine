@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Climate</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+</head>
+
+<body class="sunny">
+    <canvas id="climateCanvas"></canvas>
+
+    <div class="cloud-layer"></div>
+    <div class="flash" id="flash"></div>
+    <div class="scene-glow"></div>
+    <div class="ground"></div>
+
+    <aside class="panel">
+        <div class="panel-header">
+            <h1><strong>Climate controls</strong></h1>
+            <div class="badge" id="badge">SUNNY</div>
+        </div>
+
+        <div class="control">
+            <label for="climateOptions">
+                Climate
+            </label>
+            <select id="climateOptions">
+                <option value="sunny">Sunny</option>
+                <option value="rain">Rain</option>
+                <option value="storm">Storm</option>
+                <option value="snow">Snow</option>
+                <option value="autumn">Autumn Breeze</option>
+                <option value="petals">Gale of Petals</option>
+            </select>
+        </div>
+
+        <div class="control">
+            <label for="intensity">
+                Intensity
+                <span id="intensityValue">50%</span>
+            </label>
+            <input id="intensity" type="range" min="1" max="100" value="50" />
+        </div>
+
+        <div class="control">
+            <label for="windPower">
+                Wind Power
+                <span id="windPowerValue">30%</span>
+            </label>
+            <input id="windPower" type="range" min="0" max="100" value="30" />
+        </div>
+
+        <div class="control">
+            <label for="windDirection">
+                Wind Direction
+                <span id="windDirectionName">Right</span>
+            </label>
+            <select id="windDirection">
+                <option value="right">Right</option>
+                <option value="left">Left</option>
+            </select>
+        </div>
+
+        <button class="primary" id="controlBtn">Pause</button>
+    </aside>
+    
+    <script src="utils.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
