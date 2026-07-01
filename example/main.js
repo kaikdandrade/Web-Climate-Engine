@@ -1,4 +1,5 @@
 window.addEventListener("DOMContentLoaded", () => {
+  // O main.js é a ponte entre HTML e Climate: a classe não acessa o DOM.
   const canvas = document.getElementById("climateCanvas");
   const flash = document.getElementById("flash");
 
@@ -16,6 +17,8 @@ window.addEventListener("DOMContentLoaded", () => {
     controlBtn: document.getElementById("controlBtn"),
     controlBtnIcon: document.querySelector("#controlBtn .btn-icon"),
     controlBtnText: document.querySelector("#controlBtn .btn-text"),
+    togglePanelBtn: document.querySelector(".toggle-panel"),
+    panel: document.querySelector(".panel"),
   };
 
   const CLIMATE_LABELS = {
@@ -69,6 +72,10 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
 
   const BODY_CLASSES = Object.keys(CLIMATE_LABELS);
 
+  ui.togglePanelBtn.addEventListener("click", () => {
+    ui.panel.classList.toggle("closed");
+  });
+
   const app = new Climate({
     canvas,
     onFlash: ({ color, opacity, duration }) => {
@@ -115,6 +122,7 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
     document.body.style.background = BACKGROUNDS[climate];
   }
 
+  // Regras do painel: alguns climas controlam o vento automaticamente.
   function applyWindPowerRule(climate) {
     const locked = isWindPowerLocked(climate);
 
@@ -125,21 +133,27 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
       ui.windPowerInput.value = 0;
       app.setWindPower(0);
       ui.windPowerValue.textContent = "0%";
-      ui.windPowerInput.title = climate === "sunny"
-        ? "Sunny não usa vento."
-        : "Neste clima, o vendaval é controlado pelo próprio efeito.";
+      ui.windPowerInput.title =
+        climate === "sunny"
+          ? "Sunny não usa vento."
+          : "Neste clima, o vendaval é controlado pelo próprio efeito.";
       return;
     }
 
-    if (activeClimate === "sunny" || activeClimate === "autumn" || activeClimate === "petals") {
+    if (
+      activeClimate === "sunny" ||
+      activeClimate === "autumn" ||
+      activeClimate === "petals"
+    ) {
       ui.windPowerInput.value = rememberedWindPower;
     }
 
     app.setWindPower(Number(ui.windPowerInput.value));
     ui.windPowerValue.textContent = `${ui.windPowerInput.value}%`;
-    ui.windPowerInput.title = climate === "snow"
-      ? "No Snow, Wind Power aumenta a velocidade dos flocos, sem mudar a direção."
-      : "";
+    ui.windPowerInput.title =
+      climate === "snow"
+        ? "No Snow, Wind Power aumenta a velocidade dos flocos, sem mudar a direção."
+        : "";
   }
 
   function applyWindDirectionRule(climate) {
@@ -152,7 +166,6 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
     if (mode === "none") {
       ui.windDirectionInput.value = rememberedWindDirection;
       ui.windDirectionName.textContent = "No wind";
-      ui.windDirectionInput.title = "Sunny não usa direção de vento.";
       app.setWindDirection(rememberedWindDirection);
       return;
     }
@@ -160,15 +173,13 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
     if (mode === "snowstorm") {
       ui.windDirectionInput.value = rememberedWindDirection;
       ui.windDirectionName.textContent = "Own snowstorm";
-      ui.windDirectionInput.title = "Snow usa movimento próprio de nevasca.";
       app.setWindDirection(rememberedWindDirection);
       return;
     }
 
     if (mode === "swirl") {
-      ui.windDirectionInput.value = "swirl";
-      ui.windDirectionName.textContent = "Swirl auto";
-      ui.windDirectionInput.title = "Swirl é bloqueado para seleção manual e aplicado apenas via código.";
+      ui.windDirectionInput.value = rememberedWindDirection;
+      ui.windDirectionName.textContent = "Own Swirl";
       app.setWindDirection("swirl");
       return;
     }
@@ -177,7 +188,9 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
       ui.windDirectionInput.value = rememberedWindDirection;
     }
 
-    ui.windDirectionName.textContent = Utils.formatLabel(ui.windDirectionInput.value);
+    ui.windDirectionName.textContent = Climate.formatLabel(
+      ui.windDirectionInput.value,
+    );
     ui.windDirectionInput.title = "";
     app.setWindDirection(ui.windDirectionInput.value);
   }
@@ -202,7 +215,11 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
   }
 
   function resize() {
-    app.resize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio || 1, 2));
+    app.resize(
+      window.innerWidth,
+      window.innerHeight,
+      Math.min(window.devicePixelRatio || 1, 2),
+    );
   }
 
   ui.climateSelect.addEventListener("change", () => {
@@ -232,18 +249,21 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
 
     rememberedWindDirection = ui.windDirectionInput.value;
     app.setWindDirection(rememberedWindDirection);
-    ui.windDirectionName.textContent = Utils.formatLabel(rememberedWindDirection);
+    ui.windDirectionName.textContent = Climate.formatLabel(
+      rememberedWindDirection,
+    );
   });
 
   ui.controlBtn.addEventListener("click", () => {
     const paused = app.togglePaused();
     document.body.classList.toggle("is-paused", paused);
     ui.controlBtnText.textContent = paused ? "Resume" : "Pause";
-    ui.controlBtnIcon.textContent = paused ? "▶" : "Ⅱ";
+    ui.controlBtnIcon.textContent = paused ? "▶" : "❚❚";
   });
 
   window.addEventListener("resize", resize);
 
+  // Loop único da aplicação, delegando o desenho para Climate.
   function loop(timestamp) {
     app.tick(timestamp);
     requestAnimationFrame(loop);

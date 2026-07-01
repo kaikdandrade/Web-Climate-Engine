@@ -1,6 +1,9 @@
+// Controla todos os efeitos climáticos desenhados no canvas.
+// A classe também contém os utilitários internos que antes ficavam em Utils.
 class Climate {
+  // Prepara o canvas, os limites e o estado inicial do sistema climático.
   constructor({ canvas, onFlash = null } = {}) {
-    if (!canvas) throw new Error("Climate precisa receber um canvas.");
+    if (!canvas) throw new Error("Climate required canvas HTML reference.");
 
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
@@ -15,8 +18,9 @@ class Climate {
     this.SNOW_EDGE_PADDING = 18;
     this.MAX_SPLASHES = 260;
     this.MAX_TUMBLEWEEDS = 5;
-    this.RARE_STORM_LIGHTNING_CHANCE = 0.00005; // 0.005% por raio criado.
+    this.RARE_STORM_LIGHTNING_CHANCE = 0.05; // 0.05% por raio criado.
 
+    // Lista fechada de climas aceitos para evitar estados inválidos.
     this.validClimates = new Set([
       "sunny",
       "rain",
@@ -27,6 +31,7 @@ class Climate {
       "sandstorm",
     ]);
 
+    // Estado mutável usado pelo loop de animação.
     this.state = {
       climate: "sunny",
       intensity: 50,
@@ -38,11 +43,12 @@ class Climate {
       bolts: [],
       snowColumns: [],
       lastTime: 0,
-      lightningCooldown: 90,
+      lightningCooldown: 0,
       nextTumbleweed: 120,
     };
   }
 
+  // Troca o clima atual e reinicia partículas/efeitos temporários.
   setClimate(climate) {
     if (!this.validClimates.has(climate)) return;
 
@@ -50,20 +56,24 @@ class Climate {
     this.state.bolts = [];
     this.state.splashes = [];
     this.state.lightningCooldown = climate === "storm" ? 120 : 9999;
-    this.state.nextTumbleweed = Utils.rand(35, 130);
+    this.state.nextTumbleweed = Climate.rand(35, 130);
     this.resetParticles();
   }
 
   setIntensity(value) {
-    this.state.intensity = Utils.clamp(Number(value), 1, 100);
+    this.state.intensity = Climate.clamp(Number(value), 1, 100);
   }
 
   setWindPower(value) {
-    this.state.windPower = Utils.clamp(Number(value), 0, 100);
+    this.state.windPower = Climate.clamp(Number(value), 0, 100);
   }
 
   setWindDirection(value) {
-    if (["right", "left", "diagonal_right", "diagonal_left", "swirl"].includes(value)) {
+    if (
+      ["right", "left", "diagonal_right", "diagonal_left", "swirl"].includes(
+        value,
+      )
+    ) {
       this.state.windDirection = value;
     }
   }
@@ -77,6 +87,7 @@ class Climate {
     return this.state.paused;
   }
 
+  // Ajusta o canvas ao tamanho real da tela respeitando o DPR do dispositivo.
   resize(width, height, dpr = 1) {
     this.width = Math.max(1, Number(width));
     this.height = Math.max(1, Number(height));
@@ -92,15 +103,17 @@ class Climate {
     this.resetParticles();
   }
 
+  // Cria colunas independentes para controlar o acúmulo suave de neve no chão.
   createSnowColumns() {
     const count = Math.ceil(this.width / this.SNOW_COL_W) + 3;
     this.state.snowColumns = Array.from({ length: count }, (_, index) => ({
       h: 0,
-      meltDelay: Utils.rand(210, 470),
+      meltDelay: Climate.rand(210, 470),
       sparkleSeed: (index * 17) % 31,
     }));
   }
 
+  // Recria as partículas do clima ativo para preencher a cena corretamente.
   resetParticles() {
     this.state.particles = [];
     this.state.splashes = [];
@@ -108,27 +121,36 @@ class Climate {
     const target = this.getParticleTarget();
     for (let i = 0; i < target; i++) {
       const particle = this.makeParticle();
-      particle.y = Utils.rand(0, this.height);
+      particle.y = Climate.rand(0, this.height);
       this.state.particles.push(particle);
     }
   }
 
+  // Define a quantidade base de partículas por clima e intensidade.
   getParticleTarget() {
     const intensity = this.state.intensity;
 
     if (this.state.climate === "rain") return Math.floor(intensity * 5);
-    if (this.state.climate === "storm") return Math.floor(Utils.mapRange(intensity, 1, 100, 45, 980));
-    if (this.state.climate === "snow") return Math.floor(Utils.mapRange(intensity, 1, 100, 115, 470));
-    if (this.state.climate === "autumn") return Math.floor(Utils.mapRange(intensity, 1, 100, 45, 190));
-    if (this.state.climate === "petals") return Math.floor(Utils.mapRange(intensity, 1, 100, 70, 270));
-    if (this.state.climate === "sandstorm") return Math.floor(Utils.mapRange(intensity, 1, 100, 160, 620));
+    if (this.state.climate === "storm")
+      return Math.floor(Climate.mapRange(intensity, 1, 100, 45, 980));
+    if (this.state.climate === "snow")
+      return Math.floor(Climate.mapRange(intensity, 1, 100, 115, 470));
+    if (this.state.climate === "autumn")
+      return Math.floor(Climate.mapRange(intensity, 1, 100, 45, 190));
+    if (this.state.climate === "petals")
+      return Math.floor(Climate.mapRange(intensity, 1, 100, 70, 270));
+    if (this.state.climate === "sandstorm")
+      return Math.floor(Climate.mapRange(intensity, 1, 100, 160, 620));
 
     return Math.floor(35 + intensity * 1.15);
   }
 
+  // Mantém a quantidade de partículas compatível com a intensidade atual.
   ensureParticleCount() {
     const target = this.getParticleTarget();
-    let regularCount = this.state.particles.filter(particle => particle.type !== "tumbleweed").length;
+    let regularCount = this.state.particles.filter(
+      (particle) => particle.type !== "tumbleweed",
+    ).length;
 
     while (regularCount < target) {
       this.state.particles.push(this.makeParticle());
@@ -136,7 +158,11 @@ class Climate {
     }
 
     if (regularCount > target) {
-      for (let i = this.state.particles.length - 1; i >= 0 && regularCount > target; i--) {
+      for (
+        let i = this.state.particles.length - 1;
+        i >= 0 && regularCount > target;
+        i--
+      ) {
         if (this.state.particles[i].type !== "tumbleweed") {
           this.state.particles.splice(i, 1);
           regularCount--;
@@ -145,6 +171,7 @@ class Climate {
     }
   }
 
+  // Cria a partícula correta conforme o clima selecionado.
   makeParticle() {
     switch (this.state.climate) {
       case "rain":
@@ -165,22 +192,27 @@ class Climate {
     }
   }
 
+  // Calcula o vetor de vento usado pelo clima atual.
   getActiveWindVector() {
     if (this.state.climate === "sunny" || this.state.climate === "snow") {
       return { x: 0, y: 0, swirl: false };
     }
 
     if (this.state.climate === "autumn" || this.state.climate === "petals") {
-      return Utils.getWindVector("swirl", this.state.windPower);
+      return Climate.getWindVector("swirl", this.state.windPower);
     }
 
-    return Utils.getWindVector(this.state.windDirection, this.state.windPower);
+    return Climate.getWindVector(this.state.windDirection, this.state.windPower);
   }
 
   getHorizontalDirection() {
-    return this.state.windDirection === "left" || this.state.windDirection === "diagonal_left" ? -1 : 1;
+    return this.state.windDirection === "left" ||
+      this.state.windDirection === "diagonal_left"
+      ? -1
+      : 1;
   }
 
+  // Loop de atualização/desenho; a pausa impede qualquer avanço visual no canvas.
   tick(timestamp) {
     if (!this.state.lastTime) this.state.lastTime = timestamp;
 
@@ -189,7 +221,11 @@ class Climate {
       return;
     }
 
-    const dt = Utils.clamp((timestamp - this.state.lastTime) / 16.666, 0.35, 2.15);
+    const dt = Climate.clamp(
+      (timestamp - this.state.lastTime) / 16.666,
+      0.35,
+      2.15,
+    );
     this.state.lastTime = timestamp;
     this.elapsed = timestamp;
 
@@ -209,21 +245,22 @@ class Climate {
     this.drawVignette();
   }
 
+  // Gera uma gota de chuva comum ou de tempestade.
   makeRainDrop(storm = false) {
-    const startVy = storm ? Utils.rand(10, 17) : Utils.rand(6, 11);
+    const startVy = storm ? Climate.rand(10, 17) : Climate.rand(6, 11);
 
     return {
       type: "rain",
-      x: Utils.rand(-this.width * 0.2, this.width * 1.2),
-      y: Utils.rand(-this.height * 0.75, -12),
-      baseVx: Utils.rand(-0.55, 0.55),
+      x: Climate.rand(-this.width * 0.2, this.width * 1.2),
+      y: Climate.rand(-this.height * 0.75, -12),
+      baseVx: Climate.rand(-0.55, 0.55),
       startVy,
       vy: startVy,
-      gravity: storm ? Utils.rand(0.48, 0.74) : Utils.rand(0.28, 0.46),
-      baseLen: storm ? Utils.rand(17, 24) : Utils.rand(11, 17),
-      maxLen: storm ? Utils.rand(46, 68) : Utils.rand(28, 42),
-      w: storm ? Utils.rand(1.15, 2.2) : Utils.rand(0.72, 1.35),
-      alpha: storm ? Utils.rand(0.48, 0.88) : Utils.rand(0.28, 0.58),
+      gravity: storm ? Climate.rand(0.48, 0.74) : Climate.rand(0.28, 0.46),
+      baseLen: storm ? Climate.rand(17, 24) : Climate.rand(11, 17),
+      maxLen: storm ? Climate.rand(46, 68) : Climate.rand(28, 42),
+      w: storm ? Climate.rand(1.15, 2.2) : Climate.rand(0.72, 1.35),
+      alpha: storm ? Climate.rand(0.48, 0.88) : Climate.rand(0.28, 0.58),
     };
   }
 
@@ -231,20 +268,21 @@ class Climate {
     const count = storm ? 5 : 3;
 
     for (let i = 0; i < count; i++) {
-      if (this.state.splashes.length > this.MAX_SPLASHES) this.state.splashes.shift();
+      if (this.state.splashes.length > this.MAX_SPLASHES)
+        this.state.splashes.shift();
 
       const side = i % 2 === 0 ? 1 : -1;
-      const spread = Utils.rand(1.1, storm ? 3.8 : 2.4);
+      const spread = Climate.rand(1.1, storm ? 3.8 : 2.4);
 
       this.state.splashes.push({
-        x: x + Utils.rand(-2, 2),
-        y: y - Utils.rand(1, 4),
+        x: x + Climate.rand(-2, 2),
+        y: y - Climate.rand(1, 4),
         vx: horizontalSpeed * 0.08 + side * spread,
-        vy: -Utils.rand(1.4, storm ? 4.4 : 3.0),
-        len: Utils.rand(2.5, storm ? 7 : 4.8),
-        life: storm ? Utils.rand(16, 25) : Utils.rand(12, 20),
+        vy: -Climate.rand(1.4, storm ? 4.4 : 3.0),
+        len: Climate.rand(2.5, storm ? 7 : 4.8),
+        life: storm ? Climate.rand(16, 25) : Climate.rand(12, 20),
         maxLife: storm ? 25 : 20,
-        alpha: storm ? Utils.rand(0.32, 0.68) : Utils.rand(0.22, 0.5),
+        alpha: storm ? Climate.rand(0.32, 0.68) : Climate.rand(0.22, 0.5),
       });
     }
   }
@@ -260,7 +298,8 @@ class Climate {
       splash.x += splash.vx * dt;
       splash.y += splash.vy * dt;
 
-      const alpha = Utils.clamp(splash.life / splash.maxLife, 0, 1) * splash.alpha;
+      const alpha =
+        Climate.clamp(splash.life / splash.maxLife, 0, 1) * splash.alpha;
 
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -269,7 +308,10 @@ class Climate {
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(splash.x, splash.y);
-      ctx.lineTo(splash.x - splash.vx * 0.8, splash.y - splash.vy * 0.45 - splash.len);
+      ctx.lineTo(
+        splash.x - splash.vx * 0.8,
+        splash.y - splash.vy * 0.45 - splash.len,
+      );
       ctx.stroke();
       ctx.restore();
 
@@ -279,6 +321,7 @@ class Climate {
     }
   }
 
+  // Rain está preservado: gota acelera, estica e respinga no impacto.
   drawRain(p, dt) {
     const ctx = this.ctx;
     const wind = this.getActiveWindVector();
@@ -290,13 +333,14 @@ class Climate {
     p.x += horizontalSpeed * dt;
     p.y += (p.vy + wind.y * 0.06) * dt;
 
-    const stretch = Utils.clamp((p.vy - p.startVy) / (storm ? 18 : 13), 0, 1);
+    const stretch = Climate.clamp((p.vy - p.startVy) / (storm ? 18 : 13), 0, 1);
     const len = p.baseLen + (p.maxLen - p.baseLen) * stretch;
     const tailX = horizontalSpeed * (storm ? 2.0 : 1.55);
 
     const groundY = this.height - 13;
     if (p.y >= groundY || p.x > this.width + 150 || p.x < -150) {
-      if (p.y >= groundY) this.createRainSplash(p.x, groundY, horizontalSpeed, storm);
+      if (p.y >= groundY)
+        this.createRainSplash(p.x, groundY, horizontalSpeed, storm);
       Object.assign(p, this.makeRainDrop(storm));
       return;
     }
@@ -315,24 +359,25 @@ class Climate {
     ctx.stroke();
   }
 
+  // Gera um floco com variações de tamanho, rotação e profundidade.
   makeSnowFlake() {
-    const depth = Utils.rand(0.58, 1.26);
+    const depth = Climate.rand(0.58, 1.26);
 
     return {
       type: "snow",
-      x: Utils.rand(-90, this.width + 90),
-      y: Utils.rand(-this.height * 0.85, -16),
-      vx: Utils.rand(-0.5, 0.5) * depth,
-      vy: Utils.rand(0.76, 1.95) * depth + this.state.intensity * 0.004,
-      r: Utils.rand(2.4, 6.4) * depth,
-      alpha: Utils.rand(0.5, 0.95),
-      phase: Utils.rand(0, Math.PI * 2),
-      wave: Utils.rand(0.8, 3.4) * depth,
-      jitter: Utils.rand(0.45, 2.1),
-      seed: Utils.rand(0, 1000),
+      x: Climate.rand(-90, this.width + 90),
+      y: Climate.rand(-this.height * 0.85, -16),
+      vx: Climate.rand(-0.5, 0.5) * depth,
+      vy: Climate.rand(0.76, 1.95) * depth + this.state.intensity * 0.004,
+      r: Climate.rand(2.4, 6.4) * depth,
+      alpha: Climate.rand(0.5, 0.95),
+      phase: Climate.rand(0, Math.PI * 2),
+      wave: Climate.rand(0.8, 3.4) * depth,
+      jitter: Climate.rand(0.45, 2.1),
+      seed: Climate.rand(0, 1000),
       depth,
-      rot: Utils.rand(0, Math.PI * 2),
-      rotSpeed: Utils.rand(-0.018, 0.018),
+      rot: Climate.rand(0, Math.PI * 2),
+      rotSpeed: Climate.rand(-0.018, 0.018),
     };
   }
 
@@ -341,7 +386,9 @@ class Climate {
   }
 
   isInsideSnowAccumulationArea(x) {
-    return x > this.SNOW_EDGE_PADDING && x < this.width - this.SNOW_EDGE_PADDING;
+    return (
+      x > this.SNOW_EDGE_PADDING && x < this.width - this.SNOW_EDGE_PADDING
+    );
   }
 
   getEdgeFade(x) {
@@ -349,7 +396,7 @@ class Climate {
 
     const left = x - this.SNOW_EDGE_PADDING;
     const right = this.width - this.SNOW_EDGE_PADDING - x;
-    return Utils.clamp(Math.min(left, right) / 90, 0, 1);
+    return Climate.clamp(Math.min(left, right) / 90, 0, 1);
   }
 
   getSmoothedSnowHeight(index) {
@@ -400,9 +447,15 @@ class Climate {
 
       ctx.beginPath();
       ctx.moveTo(bx, by);
-      ctx.lineTo(bx + Math.cos(a + Math.PI * 0.72) * p.r * 0.24, by + Math.sin(a + Math.PI * 0.72) * p.r * 0.24);
+      ctx.lineTo(
+        bx + Math.cos(a + Math.PI * 0.72) * p.r * 0.24,
+        by + Math.sin(a + Math.PI * 0.72) * p.r * 0.24,
+      );
       ctx.moveTo(bx, by);
-      ctx.lineTo(bx + Math.cos(a - Math.PI * 0.72) * p.r * 0.24, by + Math.sin(a - Math.PI * 0.72) * p.r * 0.24);
+      ctx.lineTo(
+        bx + Math.cos(a - Math.PI * 0.72) * p.r * 0.24,
+        by + Math.sin(a - Math.PI * 0.72) * p.r * 0.24,
+      );
       ctx.stroke();
     }
 
@@ -413,6 +466,7 @@ class Climate {
     ctx.restore();
   }
 
+  // Atualiza e desenha um floco, acumulando neve quando toca o chão.
   drawSnow(p, dt) {
     const speedBoost = 0.7 + (this.state.windPower / 100) * 1.45;
 
@@ -422,12 +476,12 @@ class Climate {
     const turbulence =
       Math.sin(p.phase * 1.18 + p.seed) * p.wave * 0.24 +
       Math.sin(p.phase * 2.7 + p.y * 0.012) * p.jitter * 0.18;
-    const whiteoutPush = Math.sin((this.elapsed * 0.00055) + p.seed) * 0.34;
+    const whiteoutPush = Math.sin(this.elapsed * 0.00055 + p.seed) * 0.34;
 
     p.x += (p.vx + turbulence + whiteoutPush) * dt;
     p.y += (p.vy * speedBoost + Math.cos(p.phase * 1.35) * 0.15) * dt;
 
-    const columnIndex = Utils.clamp(
+    const columnIndex = Climate.clamp(
       Math.floor(p.x / this.SNOW_COL_W),
       0,
       this.state.snowColumns.length - 1,
@@ -440,12 +494,12 @@ class Climate {
     if (p.y + p.r >= floorY) {
       if (canPile) {
         const add = p.r * 0.18 * this.getEdgeFade(p.x);
-        this.state.snowColumns[columnIndex].h = Utils.clamp(
+        this.state.snowColumns[columnIndex].h = Climate.clamp(
           this.state.snowColumns[columnIndex].h + add,
           0,
           this.getMaxSnowHeight(),
         );
-        this.state.snowColumns[columnIndex].meltDelay = Utils.rand(210, 470);
+        this.state.snowColumns[columnIndex].meltDelay = Climate.rand(210, 470);
       }
 
       Object.assign(p, this.makeSnowFlake());
@@ -481,7 +535,12 @@ class Climate {
     ctx.lineTo(this.width, this.height);
     ctx.closePath();
 
-    const snowGrad = ctx.createLinearGradient(0, this.height - 92, 0, this.height);
+    const snowGrad = ctx.createLinearGradient(
+      0,
+      this.height - 92,
+      0,
+      this.height,
+    );
     snowGrad.addColorStop(0, "rgba(255,255,255,1)");
     snowGrad.addColorStop(0.52, "rgba(232,247,255,0.99)");
     snowGrad.addColorStop(1, "rgba(184,219,235,0.98)");
@@ -554,58 +613,103 @@ class Climate {
     ctx.fill();
   }
 
+  // Partículas compartilhadas por Autumn e Petals; o desenho muda pelo tipo.
   makeBreezeParticle(kind) {
     const autumnColors = [
-      "#7c2d12", "#9a3412", "#b45309", "#c2410c", "#d97706",
-      "#ea580c", "#f97316", "#f59e0b", "#facc15", "#854d0e",
-      "#991b1b", "#b91c1c", "#78350f", "#a16207", "#ca8a04",
+      "#7c2d12",
+      "#9a3412",
+      "#b45309",
+      "#c2410c",
+      "#d97706",
+      "#ea580c",
+      "#f97316",
+      "#f59e0b",
+      "#facc15",
+      "#854d0e",
+      "#991b1b",
+      "#b91c1c",
+      "#78350f",
+      "#a16207",
+      "#ca8a04",
     ];
 
     const petalColors = [
-      "#fecdd3", "#f9a8d4", "#f0abfc", "#e9d5ff", "#fb7185",
-      "#f43f5e", "#f472b6", "#ec4899", "#e11d48", "#be185d",
-      "#9d174d", "#7e22ce", "#4f46e5", "#6366f1", "#3b82f6",
-      "#facc15", "#f97316", "#f87171",
+      "#fecdd3",
+      "#f9a8d4",
+      "#f0abfc",
+      "#e9d5ff",
+      "#fb7185",
+      "#f43f5e",
+      "#f472b6",
+      "#ec4899",
+      "#e11d48",
+      "#be185d",
+      "#9d174d",
+      "#7e22ce",
+      "#4f46e5",
+      "#6366f1",
+      "#3b82f6",
+      "#facc15",
+      "#f97316",
+      "#f87171",
+      "#ea580c",
+      "#d97706",
     ];
 
     const isPetal = kind === "petal";
 
     return {
       type: kind,
-      x: Utils.rand(-230, this.width * 0.28),
-      y: isPetal ? Utils.rand(-this.height * 0.5, this.height * 0.45) : Utils.rand(-this.height * 0.18, this.height * 0.32),
-      vx: isPetal ? Utils.rand(2.2, 6.2) : Utils.rand(2.6, 6.0),
-      vy: isPetal ? Utils.rand(-0.3, 2.4) : Utils.rand(-0.18, 1.05),
-      size: isPetal ? Utils.rand(7, 17) : Utils.rand(13, 25),
-      rot: Utils.rand(0, Math.PI * 2),
-      rotSpeed: isPetal ? Utils.rand(-0.13, 0.13) : Utils.rand(-0.095, 0.095),
-      sway: isPetal ? Utils.rand(1.1, 2.8) : Utils.rand(0.65, 1.65),
-      phase: Utils.rand(0, Math.PI * 2),
-      wave: isPetal ? Utils.rand(2.2, 6.5) : Utils.rand(0.45, 1.45),
-      alpha: isPetal ? Utils.rand(0.62, 0.96) : Utils.rand(0.72, 0.98),
-      color: isPetal ? Utils.pick(petalColors) : Utils.pick(autumnColors),
+      x: Climate.rand(-260, this.width * 0.24),
+      y: isPetal
+        ? Climate.rand(-this.height * 0.5, this.height * 0.45)
+        : Climate.rand(-this.height * 0.12, this.height * 1.02),
+      vx: isPetal ? Climate.rand(2.2, 6.2) : Climate.rand(2.35, 5.9),
+      vy: isPetal ? Climate.rand(-0.3, 2.4) : Climate.rand(-0.28, 0.72),
+      size: isPetal ? Climate.rand(7, 17) : Climate.rand(13, 25),
+      rot: Climate.rand(0, Math.PI * 2),
+      rotSpeed: isPetal ? Climate.rand(-0.13, 0.13) : Climate.rand(-0.11, 0.11),
+      sway: isPetal ? Climate.rand(1.1, 2.8) : Climate.rand(1.2, 3.2),
+      phase: Climate.rand(0, Math.PI * 2),
+      wave: isPetal ? Climate.rand(2.2, 6.5) : Climate.rand(1.8, 4.8),
+      alpha: isPetal ? Climate.rand(0.62, 0.96) : Climate.rand(0.72, 0.98),
+      color: isPetal ? Climate.pick(petalColors) : Climate.pick(autumnColors),
     };
   }
 
   drawBreezeParticle(p, dt) {
     const isAutumn = p.type === "autumn";
-    const gustPower = isAutumn ? 1.78 : 1.6;
-    const swirl = Math.sin(p.phase * 2.1 + p.y * 0.006) * (isAutumn ? 2.15 : 6.8);
+    const gustPower = isAutumn ? 1.62 : 1.6;
+    const swirl =
+      Math.sin(p.phase * 2.1 + p.y * 0.006) * (isAutumn ? 5.4 : 6.8);
 
-    p.phase += (isAutumn ? 0.04 : 0.045) * dt;
+    p.phase += (isAutumn ? 0.043 : 0.045) * dt;
     p.rot += p.rotSpeed * dt;
     p.x += (p.vx * gustPower + swirl) * dt;
 
     if (isAutumn) {
-      p.y += (p.vy * 0.32 + Math.sin(p.phase) * p.wave * 0.08 + Math.cos(p.phase * 0.7) * 0.10) * dt;
+      // Autumn deve ocupar a tela toda, mas com vendaval mais horizontal.
+      p.y +=
+        (p.vy +
+          Math.sin(p.phase) * p.wave * 0.16 +
+          Math.cos(p.phase * 0.72) * 0.22) *
+        dt;
     } else {
       p.y += (p.vy + Math.sin(p.phase) * p.wave * 0.22) * dt;
     }
 
-    if (p.y > this.height + 95 || p.y < -230 || p.x > this.width + 270 || p.x < -270) {
+    if (
+      p.y > this.height + 95 ||
+      p.y < -230 ||
+      p.x > this.width + 270 ||
+      p.x < -270
+    ) {
       Object.assign(p, this.makeBreezeParticle(p.type));
-      p.x = Utils.rand(-240, -40);
-      p.y = p.type === "petal" ? Utils.rand(-this.height * 0.18, this.height * 0.65) : Utils.rand(-this.height * 0.06, this.height * 0.42);
+      p.x = Climate.rand(-260, -40);
+      p.y =
+        p.type === "petal"
+          ? Climate.rand(-this.height * 0.18, this.height * 0.65)
+          : Climate.rand(-this.height * 0.08, this.height * 1.02);
     }
 
     if (p.type === "autumn") this.drawAutumnLeaf(p);
@@ -627,12 +731,54 @@ class Climate {
 
     ctx.beginPath();
     ctx.moveTo(0, s * 1.05);
-    ctx.bezierCurveTo(-s * 0.28, s * 0.55, -s * 1.05, s * 0.48, -s * 0.75, s * 0.04);
-    ctx.bezierCurveTo(-s * 1.23, -s * 0.12, -s * 0.82, -s * 0.48, -s * 0.48, -s * 0.4);
-    ctx.bezierCurveTo(-s * 0.76, -s * 0.92, -s * 0.28, -s * 0.97, -s * 0.12, -s * 0.66);
-    ctx.bezierCurveTo(-s * 0.02, -s * 1.25, s * 0.02, -s * 1.25, s * 0.12, -s * 0.66);
-    ctx.bezierCurveTo(s * 0.28, -s * 0.97, s * 0.76, -s * 0.92, s * 0.48, -s * 0.4);
-    ctx.bezierCurveTo(s * 0.82, -s * 0.48, s * 1.23, -s * 0.12, s * 0.75, s * 0.04);
+    ctx.bezierCurveTo(
+      -s * 0.28,
+      s * 0.55,
+      -s * 1.05,
+      s * 0.48,
+      -s * 0.75,
+      s * 0.04,
+    );
+    ctx.bezierCurveTo(
+      -s * 1.23,
+      -s * 0.12,
+      -s * 0.82,
+      -s * 0.48,
+      -s * 0.48,
+      -s * 0.4,
+    );
+    ctx.bezierCurveTo(
+      -s * 0.76,
+      -s * 0.92,
+      -s * 0.28,
+      -s * 0.97,
+      -s * 0.12,
+      -s * 0.66,
+    );
+    ctx.bezierCurveTo(
+      -s * 0.02,
+      -s * 1.25,
+      s * 0.02,
+      -s * 1.25,
+      s * 0.12,
+      -s * 0.66,
+    );
+    ctx.bezierCurveTo(
+      s * 0.28,
+      -s * 0.97,
+      s * 0.76,
+      -s * 0.92,
+      s * 0.48,
+      -s * 0.4,
+    );
+    ctx.bezierCurveTo(
+      s * 0.82,
+      -s * 0.48,
+      s * 1.23,
+      -s * 0.12,
+      s * 0.75,
+      s * 0.04,
+    );
     ctx.bezierCurveTo(s * 1.05, s * 0.48, s * 0.28, s * 0.55, 0, s * 1.05);
     ctx.closePath();
     ctx.fill();
@@ -696,16 +842,17 @@ class Climate {
     ctx.restore();
   }
 
+  // Cria pequenos pontos de luz para reforçar o clima ensolarado.
   makeSunMote() {
     return {
       type: "mote",
-      x: Utils.rand(0, this.width),
-      y: Utils.rand(0, this.height),
-      r: Utils.rand(0.8, 2.4),
-      vx: Utils.rand(-0.2, 0.45),
-      vy: Utils.rand(-0.25, 0.1),
-      alpha: Utils.rand(0.18, 0.55),
-      phase: Utils.rand(0, Math.PI * 2),
+      x: Climate.rand(0, this.width),
+      y: Climate.rand(0, this.height),
+      r: Climate.rand(0.8, 2.4),
+      vx: Climate.rand(-0.2, 0.45),
+      vy: Climate.rand(-0.25, 0.1),
+      alpha: Climate.rand(0.18, 0.55),
+      phase: Climate.rand(0, Math.PI * 2),
     };
   }
 
@@ -731,21 +878,25 @@ class Climate {
     ctx.fill();
   }
 
+  // Cria partículas alongadas de areia seguindo a direção do vento.
   makeSandGrain() {
     const direction = this.getHorizontalDirection();
-    const y = Utils.rand(this.height * 0.06, this.height * 0.96);
-    const depth = Utils.rand(0.55, 1.35);
+    const y = Climate.rand(this.height * 0.06, this.height * 0.96);
+    const depth = Climate.rand(0.55, 1.35);
 
     return {
       type: "sand",
-      x: direction > 0 ? Utils.rand(-260, this.width * 0.18) : Utils.rand(this.width * 0.82, this.width + 260),
+      x:
+        direction > 0
+          ? Climate.rand(-260, this.width * 0.18)
+          : Climate.rand(this.width * 0.82, this.width + 260),
       y,
-      vx: direction * Utils.rand(5.8, 13.2) * depth,
-      vy: Utils.rand(-0.18, 0.62) * depth,
-      len: Utils.rand(18, 74) * depth,
-      alpha: Utils.rand(0.10, 0.42),
-      w: Utils.rand(0.7, 1.8) * depth,
-      phase: Utils.rand(0, Math.PI * 2),
+      vx: direction * Climate.rand(5.8, 13.2) * depth,
+      vy: Climate.rand(-0.18, 0.62) * depth,
+      len: Climate.rand(18, 74) * depth,
+      alpha: Climate.rand(0.1, 0.42),
+      w: Climate.rand(0.7, 1.8) * depth,
+      phase: Climate.rand(0, Math.PI * 2),
       depth,
     };
   }
@@ -778,21 +929,22 @@ class Climate {
     ctx.restore();
   }
 
+  // Gera um arbusto rolante usado apenas na tempestade de areia.
   makeTumbleweed() {
     const direction = this.getHorizontalDirection();
-    const radius = Utils.rand(15, 30);
+    const radius = Climate.rand(15, 30);
 
     return {
       type: "tumbleweed",
       x: direction > 0 ? -radius - 40 : this.width + radius + 40,
-      y: Utils.rand(this.height * 0.68, this.height - 68),
+      y: Climate.rand(this.height * 0.68, this.height - 68),
       r: radius,
-      vx: direction * Utils.rand(2.6, 4.8),
-      vy: Utils.rand(-0.18, 0.26),
-      rot: Utils.rand(0, Math.PI * 2),
-      rotSpeed: direction * Utils.rand(0.08, 0.18),
-      life: Utils.rand(420, 820),
-      seed: Utils.rand(0, 1000),
+      vx: direction * Climate.rand(2.6, 4.8),
+      vy: Climate.rand(-0.18, 0.26),
+      rot: Climate.rand(0, Math.PI * 2),
+      rotSpeed: direction * Climate.rand(0.08, 0.18),
+      life: Climate.rand(420, 820),
+      seed: Climate.rand(0, 1000),
     };
   }
 
@@ -800,11 +952,14 @@ class Climate {
     if (this.state.climate !== "sandstorm") return;
 
     this.state.nextTumbleweed -= dt;
-    const existing = this.state.particles.filter(p => p.type === "tumbleweed").length;
+    const existing = this.state.particles.filter(
+      (p) => p.type === "tumbleweed",
+    ).length;
 
     if (this.state.nextTumbleweed <= 0 && existing < this.MAX_TUMBLEWEEDS) {
       this.state.particles.push(this.makeTumbleweed());
-      this.state.nextTumbleweed = Utils.rand(90, 260) - this.state.intensity * 0.75;
+      this.state.nextTumbleweed =
+        Climate.rand(90, 260) - this.state.intensity * 0.75;
     }
   }
 
@@ -846,16 +1001,19 @@ class Climate {
 
     ctx.restore();
 
-    const offscreen = direction > 0 ? p.x > this.width + p.r + 120 : p.x < -p.r - 120;
+    const offscreen =
+      direction > 0 ? p.x > this.width + p.r + 120 : p.x < -p.r - 120;
     if (p.life <= 0 || offscreen) {
       Object.assign(p, this.makeSandGrain());
     }
   }
 
+  // Encaminha cada partícula para o desenhador específico do seu tipo.
   drawParticle(p, dt) {
     if (p.type === "rain") this.drawRain(p, dt);
     else if (p.type === "snow") this.drawSnow(p, dt);
-    else if (p.type === "autumn" || p.type === "petal") this.drawBreezeParticle(p, dt);
+    else if (p.type === "autumn" || p.type === "petal")
+      this.drawBreezeParticle(p, dt);
     else if (p.type === "mote") this.drawSunMote(p, dt);
     else if (p.type === "sand") this.drawSandGrain(p, dt);
     else if (p.type === "tumbleweed") this.drawTumbleweed(p, dt);
@@ -869,26 +1027,66 @@ class Climate {
     const sunY = this.height * 0.18;
     const sunR = Math.min(this.width, this.height) * 0.092;
     const intensity = this.state.intensity / 100;
+    const pulse = 1 + Math.sin(time * 0.002) * 0.035;
 
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
 
-    const skyGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, Math.max(this.width, this.height) * 0.72);
-    skyGlow.addColorStop(0, `rgba(255, 246, 196, ${0.30 + intensity * 0.18})`);
-    skyGlow.addColorStop(0.36, `rgba(251, 191, 36, ${0.08 + intensity * 0.06})`);
+    const skyGlow = ctx.createRadialGradient(
+      sunX,
+      sunY,
+      0,
+      sunX,
+      sunY,
+      Math.max(this.width, this.height) * 0.72,
+    );
+    skyGlow.addColorStop(0, `rgba(255, 246, 196, ${0.3 + intensity * 0.18})`);
+    skyGlow.addColorStop(
+      0.36,
+      `rgba(251, 191, 36, ${0.08 + intensity * 0.06})`,
+    );
     skyGlow.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = skyGlow;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 3.05);
+    // Aura suave ao redor do sol, parecida com brilho de lente sem criar feixe forte.
+    const sunGlow = ctx.createRadialGradient(
+      sunX,
+      sunY,
+      0,
+      sunX,
+      sunY,
+      sunR * 3.28,
+    );
     sunGlow.addColorStop(0, "rgba(255, 255, 230, 1)");
     sunGlow.addColorStop(0.28, "rgba(255, 224, 102, 0.96)");
-    sunGlow.addColorStop(0.6, "rgba(251, 191, 36, 0.30)");
+    sunGlow.addColorStop(0.58, "rgba(251, 191, 36, 0.36)");
     sunGlow.addColorStop(1, "rgba(251, 191, 36, 0)");
     ctx.fillStyle = sunGlow;
     ctx.beginPath();
-    ctx.arc(sunX, sunY, sunR * 3.05, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, sunR * 3.28, 0, Math.PI * 2);
     ctx.fill();
+
+    // Traços finos ao redor do sol, como no desenho de referência enviado.
+    ctx.save();
+    ctx.translate(sunX, sunY);
+    ctx.rotate(Math.sin(time * 0.0008) * 0.035);
+    ctx.strokeStyle = `rgba(255, 238, 140, ${0.3 + intensity * 0.18})`;
+    ctx.lineWidth = 1.55;
+    ctx.lineCap = "round";
+
+    const rayCount = 28;
+    for (let i = 0; i < rayCount; i++) {
+      const angle = (i * Math.PI * 2) / rayCount;
+      const inner = sunR * (1.22 + (i % 2) * 0.08);
+      const outer = sunR * (2.15 + (i % 3) * 0.22) * pulse;
+
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+      ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+      ctx.stroke();
+    }
+    ctx.restore();
 
     ctx.fillStyle = "rgba(255, 247, 205, 0.98)";
     ctx.beginPath();
@@ -914,7 +1112,8 @@ class Climate {
     ctx.globalAlpha = 0.08 + this.state.intensity * 0.00055;
     for (let i = 0; i < 3; i++) {
       const x = ((time * 0.006 * (i + 1) + i * 380) % (this.width + 760)) - 380;
-      const y = this.height * (0.22 + i * 0.2) + Math.sin(time * 0.0012 + i) * 18;
+      const y =
+        this.height * (0.22 + i * 0.2) + Math.sin(time * 0.0012 + i) * 18;
       const grad = ctx.createRadialGradient(x, y, 0, x, y, 260);
       grad.addColorStop(0, "rgba(210, 232, 242, 0.28)");
       grad.addColorStop(0.52, "rgba(173, 203, 219, 0.10)");
@@ -929,7 +1128,8 @@ class Climate {
   }
 
   drawBreezeAtmosphere(time) {
-    if (this.state.climate !== "petals" && this.state.climate !== "autumn") return;
+    if (this.state.climate !== "petals" && this.state.climate !== "autumn")
+      return;
 
     const ctx = this.ctx;
     const isPetals = this.state.climate === "petals";
@@ -948,8 +1148,10 @@ class Climate {
     ctx.save();
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, this.width, this.height);
-    ctx.globalAlpha = isPetals ? 0.20 : 0.16;
-    ctx.strokeStyle = isPetals ? "rgba(255, 228, 230, 0.75)" : "rgba(255, 237, 213, 0.66)";
+    ctx.globalAlpha = isPetals ? 0.2 : 0.16;
+    ctx.strokeStyle = isPetals
+      ? "rgba(255, 228, 230, 0.75)"
+      : "rgba(255, 237, 213, 0.66)";
     ctx.lineWidth = 1.2;
 
     const windSpeed = 0.08 + (this.state.windPower / 100) * 0.11;
@@ -959,7 +1161,14 @@ class Climate {
       const start = ((time * windSpeed + i * 145) % (this.width + 420)) - 420;
       ctx.beginPath();
       ctx.moveTo(start, baseY);
-      ctx.bezierCurveTo(start + 130, baseY - 55, start + 260, baseY + 48, start + 460, baseY - 8);
+      ctx.bezierCurveTo(
+        start + 130,
+        baseY - 55,
+        start + 260,
+        baseY + 48,
+        start + 460,
+        baseY - 8,
+      );
       ctx.stroke();
     }
 
@@ -990,6 +1199,7 @@ class Climate {
     ctx.restore();
   }
 
+  // Atmosfera da Sandstorm sem redemoinhos: apenas poeira horizontal e véu de areia.
   drawSandstormAtmosphere(time) {
     if (this.state.climate !== "sandstorm") return;
 
@@ -999,7 +1209,7 @@ class Climate {
 
     ctx.save();
     const dusty = ctx.createLinearGradient(0, 0, 0, this.height);
-    dusty.addColorStop(0, `rgba(179, 119, 54, ${0.10 + power * 0.08})`);
+    dusty.addColorStop(0, `rgba(179, 119, 54, ${0.1 + power * 0.08})`);
     dusty.addColorStop(0.42, `rgba(222, 166, 91, ${0.16 + power * 0.13})`);
     dusty.addColorStop(1, `rgba(122, 76, 35, ${0.22 + power * 0.18})`);
     ctx.fillStyle = dusty;
@@ -1011,9 +1221,13 @@ class Climate {
 
     for (let i = 0; i < 16; i++) {
       const y = 55 + i * 45 + Math.sin(time * 0.006 + i) * 18;
-      const start = direction > 0
-        ? ((time * (0.12 + power * 0.12) + i * 120) % (this.width + 520)) - 520
-        : this.width - ((time * (0.12 + power * 0.12) + i * 120) % (this.width + 520)) + 120;
+      const start =
+        direction > 0
+          ? ((time * (0.12 + power * 0.12) + i * 120) % (this.width + 520)) -
+            520
+          : this.width -
+            ((time * (0.12 + power * 0.12) + i * 120) % (this.width + 520)) +
+            120;
 
       ctx.beginPath();
       ctx.moveTo(start, y);
@@ -1028,58 +1242,10 @@ class Climate {
       ctx.stroke();
     }
 
-    for (let i = 0; i < 4; i++) {
-      const cx = Utils.wrap(time * (0.030 + i * 0.012) * direction + i * this.width * 0.27, -220, this.width + 220);
-      const baseY = this.height * (0.82 - i * 0.055);
-      const h = 175 + i * 20;
-      const maxR = 34 + i * 10;
-
-      const column = ctx.createLinearGradient(cx, baseY - h, cx, baseY + 24);
-      column.addColorStop(0, "rgba(255, 230, 170, 0)");
-      column.addColorStop(0.45, `rgba(224, 157, 75, ${0.05 + power * 0.08})`);
-      column.addColorStop(1, `rgba(90, 55, 28, ${0.10 + power * 0.13})`);
-      ctx.fillStyle = column;
-      ctx.beginPath();
-      ctx.ellipse(cx, baseY - h * 0.42, maxR * 0.92, h * 0.48, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      for (let ring = 0; ring < 7; ring++) {
-        const t = ring / 6;
-        const y = baseY - h * t;
-        const wobble = Math.sin(time * 0.004 + i * 1.7 + ring) * 12;
-        const rx = Utils.lerp(maxR, 9, t);
-        const ry = Utils.lerp(7, 2.4, t);
-
-        ctx.globalAlpha = (0.10 + power * 0.18) * (1 - t * 0.54);
-        ctx.strokeStyle = ring % 2 === 0 ? "rgba(255, 226, 159, 0.72)" : "rgba(96, 58, 28, 0.58)";
-        ctx.lineWidth = Utils.lerp(2.4, 0.9, t);
-        ctx.beginPath();
-        ctx.ellipse(cx + wobble, y, rx, ry, time * 0.005 * direction + ring * 0.42, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      ctx.globalAlpha = 0.18 + power * 0.16;
-      ctx.strokeStyle = "rgba(255, 224, 159, 0.64)";
-      ctx.lineWidth = 1.15;
-      for (let ribbon = 0; ribbon < 3; ribbon++) {
-        ctx.beginPath();
-        for (let a = 0; a <= Math.PI * 5.8; a += 0.26) {
-          const t = a / (Math.PI * 5.8);
-          const r = Utils.lerp(maxR * 0.86, 8, t);
-          const x = cx + Math.cos(a * direction + time * 0.008 + ribbon * 2.1) * r;
-          const y = baseY - h * t + Math.sin(a * 0.8 + ribbon) * 4;
-          if (a === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-    }
-
-    ctx.globalAlpha = 1;
-
     ctx.restore();
   }
 
+  // Desenha camadas atmosféricas de fundo antes das partículas principais.
   drawAtmosphere(time) {
     this.drawSunnyAtmosphere(time);
     this.drawSnowAtmosphere(time);
@@ -1088,26 +1254,27 @@ class Climate {
     this.drawSandstormAtmosphere(time);
   }
 
+  // Monta o caminho ramificado do raio e dispara o flash externo, se existir.
   createLightning() {
-    const rare = Utils.chance(this.RARE_STORM_LIGHTNING_CHANCE);
-    const rareColor = rare ? Utils.pick(["red", "violet"]) : null;
-    const startX = Utils.rand(this.width * 0.12, this.width * 0.88);
-    const endY = this.height + Utils.rand(20, 160);
+    const rare = Climate.chance(this.RARE_STORM_LIGHTNING_CHANCE);
+    const rareColor = rare ? Climate.pick(["red", "violet"]) : null;
+    const startX = Climate.rand(this.width * 0.12, this.width * 0.88);
+    const endY = this.height + Climate.rand(20, 160);
     const segments = [];
     let x = startX;
     let y = 0;
 
     while (y < endY) {
-      const nextX = Utils.clamp(x + Utils.rand(-42, 42), -60, this.width + 60);
-      const nextY = Math.min(endY, y + Utils.rand(34, 76));
+      const nextX = Climate.clamp(x + Climate.rand(-42, 42), -60, this.width + 60);
+      const nextY = Math.min(endY, y + Climate.rand(34, 76));
       segments.push({ x1: x, y1: y, x2: nextX, y2: nextY });
 
-      if (Utils.chance(0.22) && nextY < this.height * 0.9) {
+      if (Climate.chance(0.22) && nextY < this.height * 0.9) {
         segments.push({
           x1: nextX,
           y1: nextY,
-          x2: nextX + Utils.rand(-120, 120),
-          y2: nextY + Utils.rand(32, 120),
+          x2: nextX + Climate.rand(-120, 120),
+          y2: nextY + Climate.rand(32, 120),
         });
       }
 
@@ -1115,26 +1282,27 @@ class Climate {
       y = nextY;
     }
 
-    const palette = rareColor === "red"
-      ? {
-          glow: "rgba(255, 40, 80, 0.98)",
-          outer: "rgba(255, 60, 96, ALPHA)",
-          inner: "rgba(255, 215, 225, ALPHA)",
-          flash: "rgba(255, 48, 96, 0.84)",
-        }
-      : rareColor === "violet"
+    const palette =
+      rareColor === "red"
         ? {
-            glow: "rgba(190, 88, 255, 0.98)",
-            outer: "rgba(190, 88, 255, ALPHA)",
-            inner: "rgba(245, 220, 255, ALPHA)",
-            flash: "rgba(177, 92, 255, 0.82)",
+            glow: "rgba(255, 40, 80, 0.98)",
+            outer: "rgba(255, 60, 96, ALPHA)",
+            inner: "rgba(255, 215, 225, ALPHA)",
+            flash: "rgba(255, 48, 96, 0.84)",
           }
-        : {
-            glow: "rgba(190, 225, 255, 0.95)",
-            outer: "rgba(220, 245, 255, ALPHA)",
-            inner: "rgba(255, 255, 255, ALPHA)",
-            flash: "rgba(220, 238, 255, 0.95)",
-          };
+        : rareColor === "violet"
+          ? {
+              glow: "rgba(190, 88, 255, 0.98)",
+              outer: "rgba(190, 88, 255, ALPHA)",
+              inner: "rgba(245, 220, 255, ALPHA)",
+              flash: "rgba(177, 92, 255, 0.82)",
+            }
+          : {
+              glow: "rgba(190, 225, 255, 0.95)",
+              outer: "rgba(220, 245, 255, ALPHA)",
+              inner: "rgba(255, 255, 255, ALPHA)",
+              flash: "rgba(220, 238, 255, 0.95)",
+            };
 
     this.state.bolts.push({
       life: rare ? 19 : 14,
@@ -1153,6 +1321,7 @@ class Climate {
     }
   }
 
+  // Controla chance, duração e desenho dos raios durante tempestades.
   updateLightning(dt) {
     if (this.state.climate !== "storm") {
       this.state.bolts = [];
@@ -1163,12 +1332,16 @@ class Climate {
     const power = this.state.intensity / 100;
     this.state.lightningCooldown -= dt;
 
-    const lightningChance = Math.pow(power, 3.25) * 0.016;
-    if (power > 0.055 && this.state.lightningCooldown <= 0 && Utils.chance(lightningChance)) {
+    const lightningChance = Math.pow(power, 3.25) * 0.033;
+    if (
+      power > 0.055 &&
+      this.state.lightningCooldown <= 0 &&
+      Climate.chance(lightningChance)
+    ) {
       this.createLightning();
-      this.state.lightningCooldown = Utils.rand(
-        Utils.lerp(260, 20, power),
-        Utils.lerp(520, 72, power),
+      this.state.lightningCooldown = Climate.rand(
+        Climate.lerp(260, 20, power),
+        Climate.lerp(520, 72, power),
       );
     }
 
@@ -1176,7 +1349,7 @@ class Climate {
       const bolt = this.state.bolts[i];
       bolt.life -= dt;
 
-      const alpha = Utils.clamp(bolt.life / bolt.maxLife, 0, 1);
+      const alpha = Climate.clamp(bolt.life / bolt.maxLife, 0, 1);
       const outer = bolt.palette.outer.replace("ALPHA", alpha);
       const inner = bolt.palette.inner.replace("ALPHA", alpha);
 
@@ -1209,6 +1382,7 @@ class Climate {
     }
   }
 
+  // Escurece suavemente as bordas para dar profundidade ao clima atual.
   drawVignette() {
     const ctx = this.ctx;
     const climate = this.state.climate;
@@ -1230,5 +1404,71 @@ class Climate {
     grad.addColorStop(1, edge);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, this.width, this.height);
+  }
+
+  // Métodos estáticos incorporados da antiga classe Utils.
+  // Utilitários internos: números aleatórios, interpolação e cálculos auxiliares.
+  static rand(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  // Retorna um inteiro aleatório dentro do intervalo informado.
+  static randInt(min, max) {
+    return Math.floor(Climate.rand(min, max + 1));
+  }
+
+  // Testa uma probabilidade entre 0 e 1.
+  static chance(probability) {
+    return Math.random() < probability;
+  }
+
+  // Sorteia um item de uma lista.
+  static pick(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  // Limita um valor entre mínimo e máximo.
+  static clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  // Interpola suavemente entre dois valores.
+  static lerp(a, b, t) {
+    return a + (b - a) * Climate.clamp(t, 0, 1);
+  }
+
+  // Converte um valor de uma escala para outra.
+  static mapRange(value, inMin, inMax, outMin, outMax) {
+    if (inMax === inMin) return outMin;
+    const t = (value - inMin) / (inMax - inMin);
+    return Climate.lerp(outMin, outMax, t);
+  }
+
+  // Formata textos técnicos para exibição em labels.
+  static formatLabel(value) {
+    return String(value || "")
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  // Traduz direção e força do vento em um vetor usado pelas partículas.
+  static getWindVector(windDirection, windPower) {
+    const p = Climate.clamp(windPower, 0, 100) / 100;
+
+    const vectors = {
+      right: { x: 7 * p, y: 0, swirl: false },
+      left: { x: -7 * p, y: 0, swirl: false },
+      diagonal_right: { x: 6 * p, y: 2.2 * p, swirl: false },
+      diagonal_left: { x: -6 * p, y: 2.2 * p, swirl: false },
+      swirl: { x: 4.5 * p, y: 0, swirl: true },
+    };
+
+    return vectors[windDirection] || { x: 0, y: 0, swirl: false };
+  }
+
+  // Faz um valor circular dentro de um intervalo, útil para reposicionamentos.
+  static wrap(value, min, max) {
+    const size = max - min;
+    return ((((value - min) % size) + size) % size) + min;
   }
 }

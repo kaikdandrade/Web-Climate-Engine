@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Climate</title>
+    <title>Web Climate Engine</title>
     <link rel="stylesheet" href="style.css">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
@@ -17,59 +17,21 @@
     <div class="scene-glow" aria-hidden="true"></div>
     <div class="ground" aria-hidden="true"></div>
 
-    <div class="desert-cacti" aria-hidden="true">
-        <div class="desert-easter-egg cactus-1">
-            <div class="cactus-shadow"></div>
-            <div class="cactus">
+    <div class="desert-cactus" aria-hidden="true">
+        <div class="cactus">
+            <div class="cactus-tall">
                 <span class="cactus-arm cactus-arm-left"></span>
                 <span class="cactus-arm cactus-arm-right"></span>
                 <span class="cactus-flower"></span>
             </div>
         </div>
-        <div class="desert-easter-egg cactus-2">
-            <div class="cactus-shadow"></div>
-            <div class="cactus cactus-small">
-                <span class="cactus-arm cactus-arm-right"></span>
-                <span class="cactus-flower"></span>
-            </div>
-        </div>
-        <div class="desert-easter-egg cactus-3">
-            <div class="cactus-shadow"></div>
-            <div class="cactus cactus-tall">
-                <span class="cactus-arm cactus-arm-left"></span>
-                <span class="cactus-arm cactus-arm-right"></span>
-                <span class="cactus-flower"></span>
-            </div>
-        </div>
-        <div class="desert-easter-egg cactus-4">
-            <div class="cactus-shadow"></div>
-            <div class="cactus cactus-small">
-                <span class="cactus-arm cactus-arm-left"></span>
-                <span class="cactus-flower"></span>
-            </div>
-        </div>
-        <div class="desert-easter-egg cactus-5">
-            <div class="cactus-shadow"></div>
-            <div class="cactus">
-                <span class="cactus-arm cactus-arm-left"></span>
-                <span class="cactus-arm cactus-arm-right"></span>
-                <span class="cactus-flower"></span>
-            </div>
-        </div>
-        <div class="desert-easter-egg cactus-6">
-            <div class="cactus-shadow"></div>
-            <div class="cactus cactus-small">
-                <span class="cactus-arm cactus-arm-right"></span>
-                <span class="cactus-flower"></span>
-            </div>
-        </div>
-        <div class="desert-easter-egg cactus-7">
-            <div class="cactus-shadow"></div>
-            <div class="cactus cactus-tall">
-                <span class="cactus-arm cactus-arm-left"></span>
-                <span class="cactus-arm cactus-arm-right"></span>
-                <span class="cactus-flower"></span>
-            </div>
+    </div>
+
+    <div class="snow-snowman" aria-hidden="true">
+        <div class="snowman">
+            <span class="snowman-hat"></span>
+            <span class="snowman-head"></span>
+            <span class="snowman-body"></span>
         </div>
     </div>
 
@@ -121,20 +83,18 @@
             <select id="windDirection">
                 <option value="right">Right</option>
                 <option value="left">Left</option>
-                <option value="diagonal_right">Diagonal Right</option>
-                <option value="diagonal_left">Diagonal Left</option>
-                <option value="swirl" disabled>Swirl (auto)</option>
             </select>
         </div>
 
         <button class="primary" id="controlBtn" type="button">
-            <span class="btn-icon">Ⅱ</span>
+            <span class="btn-icon" aria-hidden="true">❚❚</span>
             <span class="btn-text">Pause</span>
         </button>
+
+        <span class="toggle-panel"></span>
     </aside>
 
-    <script src="utils.js"></script>
-    <script src="Climate.js"></script>
+    <script src="../Climate.js"></script>
     <script src="main.js"></script>
 </body>
 
