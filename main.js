@@ -45,10 +45,10 @@ radial-gradient(circle at 76% 16%, rgba(96, 165, 250, 0.09), transparent 31%),
 linear-gradient(180deg, #050816 0%, #0b1221 42%, #111827 100%)
 `,
     snow: `
-radial-gradient(ellipse at 50% 105%, rgba(246, 252, 255, 0.56), transparent 42%),
-radial-gradient(circle at 18% 18%, rgba(190, 218, 232, 0.18), transparent 31%),
-radial-gradient(circle at 84% 14%, rgba(248, 252, 255, 0.13), transparent 28%),
-linear-gradient(180deg, #162331 0%, #263848 42%, #657983 76%, #e8eef1 100%)
+radial-gradient(ellipse at 50% 112%, rgba(226, 242, 250, 0.34), transparent 46%),
+radial-gradient(circle at 18% 16%, rgba(196, 220, 232, 0.18), transparent 32%),
+radial-gradient(circle at 82% 11%, rgba(255, 255, 255, 0.10), transparent 28%),
+linear-gradient(180deg, #0e1825 0%, #172535 38%, #334858 72%, #7f929c 100%)
 `,
     autumn: `
 radial-gradient(circle at 75% 20%, rgba(255, 238, 186, 0.48), transparent 22%),
@@ -88,7 +88,7 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
   let rememberedWindDirection = ui.windDirectionInput.value;
 
   function isWindPowerLocked(climate) {
-    return climate === "sunny";
+    return climate === "sunny" || climate === "autumn" || climate === "petals";
   }
 
   function getWindDirectionMode(climate) {
@@ -125,11 +125,13 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
       ui.windPowerInput.value = 0;
       app.setWindPower(0);
       ui.windPowerValue.textContent = "0%";
-      ui.windPowerInput.title = "Sunny não usa vento.";
+      ui.windPowerInput.title = climate === "sunny"
+        ? "Sunny não usa vento."
+        : "Neste clima, o vendaval é controlado pelo próprio efeito.";
       return;
     }
 
-    if (activeClimate === "sunny") {
+    if (activeClimate === "sunny" || activeClimate === "autumn" || activeClimate === "petals") {
       ui.windPowerInput.value = rememberedWindPower;
     }
 
@@ -235,6 +237,7 @@ linear-gradient(180deg, #80522b 0%, #c48a47 48%, #d8a65c 75%, #8a5428 100%)
 
   ui.controlBtn.addEventListener("click", () => {
     const paused = app.togglePaused();
+    document.body.classList.toggle("is-paused", paused);
     ui.controlBtnText.textContent = paused ? "Resume" : "Pause";
     ui.controlBtnIcon.textContent = paused ? "▶" : "Ⅱ";
   });

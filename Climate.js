@@ -15,7 +15,7 @@ class Climate {
     this.SNOW_EDGE_PADDING = 18;
     this.MAX_SPLASHES = 260;
     this.MAX_TUMBLEWEEDS = 5;
-    this.RARE_STORM_LIGHTNING_CHANCE = 0.04; // 0.04% por raio criado.
+    this.RARE_STORM_LIGHTNING_CHANCE = 0.00005; // 0.005% por raio criado.
 
     this.validClimates = new Set([
       "sunny",
@@ -118,7 +118,7 @@ class Climate {
 
     if (this.state.climate === "rain") return Math.floor(intensity * 5);
     if (this.state.climate === "storm") return Math.floor(Utils.mapRange(intensity, 1, 100, 45, 980));
-    if (this.state.climate === "snow") return Math.floor(Utils.mapRange(intensity, 1, 100, 75, 285));
+    if (this.state.climate === "snow") return Math.floor(Utils.mapRange(intensity, 1, 100, 115, 470));
     if (this.state.climate === "autumn") return Math.floor(Utils.mapRange(intensity, 1, 100, 45, 190));
     if (this.state.climate === "petals") return Math.floor(Utils.mapRange(intensity, 1, 100, 70, 270));
     if (this.state.climate === "sandstorm") return Math.floor(Utils.mapRange(intensity, 1, 100, 160, 620));
@@ -464,6 +464,10 @@ class Climate {
     if (this.state.climate !== "snow") return;
 
     const ctx = this.ctx;
+    ctx.save();
+    ctx.shadowColor = "rgba(255, 255, 255, 0.34)";
+    ctx.shadowBlur = 16;
+
     ctx.beginPath();
     ctx.moveTo(0, this.height);
 
@@ -477,26 +481,41 @@ class Climate {
     ctx.lineTo(this.width, this.height);
     ctx.closePath();
 
-    const snowGrad = ctx.createLinearGradient(0, this.height - 86, 0, this.height);
-    snowGrad.addColorStop(0, "rgba(255,255,255,0.99)");
-    snowGrad.addColorStop(0.54, "rgba(235,247,251,0.97)");
-    snowGrad.addColorStop(1, "rgba(198,224,235,0.93)");
+    const snowGrad = ctx.createLinearGradient(0, this.height - 92, 0, this.height);
+    snowGrad.addColorStop(0, "rgba(255,255,255,1)");
+    snowGrad.addColorStop(0.52, "rgba(232,247,255,0.99)");
+    snowGrad.addColorStop(1, "rgba(184,219,235,0.98)");
 
     ctx.fillStyle = snowGrad;
     ctx.fill();
+    ctx.shadowBlur = 0;
 
-    ctx.fillStyle = "rgba(255,255,255,0.32)";
-    for (let i = 4; i < this.state.snowColumns.length; i += 9) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < this.state.snowColumns.length; i++) {
+      const x = i * this.SNOW_COL_W;
+      const h = this.getSmoothedSnowHeight(i) * this.getEdgeFade(x);
+      const soft = Math.sin(i * 0.42) * 1.05;
+      if (i === 0) ctx.moveTo(x, this.height - h - soft);
+      else ctx.lineTo(x, this.height - h - soft);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,0.48)";
+    for (let i = 4; i < this.state.snowColumns.length; i += 8) {
       const x = i * this.SNOW_COL_W;
       const h = this.getSmoothedSnowHeight(i) * this.getEdgeFade(x);
 
-      if (h > 6) {
-        const r = 0.85 + (this.state.snowColumns[i].sparkleSeed % 9) * 0.11;
+      if (h > 5) {
+        const r = 0.95 + (this.state.snowColumns[i].sparkleSeed % 9) * 0.12;
         ctx.beginPath();
-        ctx.arc(x, this.height - h - 1.4, r, 0, Math.PI * 2);
+        ctx.arc(x, this.height - h - 1.8, r, 0, Math.PI * 2);
         ctx.fill();
       }
     }
+
+    ctx.restore();
 
     for (const col of this.state.snowColumns) {
       col.meltDelay -= dt;
@@ -537,8 +556,9 @@ class Climate {
 
   makeBreezeParticle(kind) {
     const autumnColors = [
-      "#d97706", "#f59e0b", "#b45309", "#dc2626", "#92400e",
-      "#f97316", "#7c2d12", "#b91c1c", "#f87171", "#facc15",
+      "#7c2d12", "#9a3412", "#b45309", "#c2410c", "#d97706",
+      "#ea580c", "#f97316", "#f59e0b", "#facc15", "#854d0e",
+      "#991b1b", "#b91c1c", "#78350f", "#a16207", "#ca8a04",
     ];
 
     const petalColors = [
@@ -548,37 +568,44 @@ class Climate {
       "#facc15", "#f97316", "#f87171",
     ];
 
+    const isPetal = kind === "petal";
+
     return {
       type: kind,
       x: Utils.rand(-230, this.width * 0.28),
-      y: kind === "petal" ? Utils.rand(-this.height * 0.5, this.height * 0.45) : Utils.rand(-this.height * 0.35, -20),
-      vx: kind === "petal" ? Utils.rand(2.2, 6.2) : Utils.rand(0.8, 3.4),
-      vy: kind === "petal" ? Utils.rand(-0.3, 2.4) : Utils.rand(1.1, 3.2),
-      size: kind === "petal" ? Utils.rand(7, 17) : Utils.rand(13, 25),
+      y: isPetal ? Utils.rand(-this.height * 0.5, this.height * 0.45) : Utils.rand(-this.height * 0.18, this.height * 0.32),
+      vx: isPetal ? Utils.rand(2.2, 6.2) : Utils.rand(2.6, 6.0),
+      vy: isPetal ? Utils.rand(-0.3, 2.4) : Utils.rand(-0.18, 1.05),
+      size: isPetal ? Utils.rand(7, 17) : Utils.rand(13, 25),
       rot: Utils.rand(0, Math.PI * 2),
-      rotSpeed: kind === "petal" ? Utils.rand(-0.13, 0.13) : Utils.rand(-0.08, 0.08),
-      sway: Utils.rand(0.8, 2.4),
+      rotSpeed: isPetal ? Utils.rand(-0.13, 0.13) : Utils.rand(-0.095, 0.095),
+      sway: isPetal ? Utils.rand(1.1, 2.8) : Utils.rand(0.65, 1.65),
       phase: Utils.rand(0, Math.PI * 2),
-      wave: kind === "petal" ? Utils.rand(2.2, 6.5) : Utils.rand(0.8, 2.4),
-      alpha: kind === "petal" ? Utils.rand(0.62, 0.96) : Utils.rand(0.68, 0.96),
-      color: kind === "petal" ? Utils.pick(petalColors) : Utils.pick(autumnColors),
+      wave: isPetal ? Utils.rand(2.2, 6.5) : Utils.rand(0.45, 1.45),
+      alpha: isPetal ? Utils.rand(0.62, 0.96) : Utils.rand(0.72, 0.98),
+      color: isPetal ? Utils.pick(petalColors) : Utils.pick(autumnColors),
     };
   }
 
   drawBreezeParticle(p, dt) {
-    const wind = Utils.getWindVector("swirl", this.state.windPower);
-    const gustPower = 1.15 + this.state.windPower / 48;
-    const swirl = Math.sin(p.phase * 2.1 + p.y * 0.006) * (3.1 + this.state.windPower * 0.072);
+    const isAutumn = p.type === "autumn";
+    const gustPower = isAutumn ? 1.78 : 1.6;
+    const swirl = Math.sin(p.phase * 2.1 + p.y * 0.006) * (isAutumn ? 2.15 : 6.8);
 
-    p.phase += (0.038 + this.state.windPower * 0.00016) * dt;
+    p.phase += (isAutumn ? 0.04 : 0.045) * dt;
     p.rot += p.rotSpeed * dt;
-    p.x += (p.vx * gustPower + wind.x * 0.72 + swirl) * dt;
-    p.y += (p.vy + Math.sin(p.phase) * p.wave * 0.22 + wind.y * 0.25) * dt;
+    p.x += (p.vx * gustPower + swirl) * dt;
+
+    if (isAutumn) {
+      p.y += (p.vy * 0.32 + Math.sin(p.phase) * p.wave * 0.08 + Math.cos(p.phase * 0.7) * 0.10) * dt;
+    } else {
+      p.y += (p.vy + Math.sin(p.phase) * p.wave * 0.22) * dt;
+    }
 
     if (p.y > this.height + 95 || p.y < -230 || p.x > this.width + 270 || p.x < -270) {
       Object.assign(p, this.makeBreezeParticle(p.type));
       p.x = Utils.rand(-240, -40);
-      p.y = p.type === "petal" ? Utils.rand(-this.height * 0.18, this.height * 0.65) : Utils.rand(-190, -20);
+      p.y = p.type === "petal" ? Utils.rand(-this.height * 0.18, this.height * 0.65) : Utils.rand(-this.height * 0.06, this.height * 0.42);
     }
 
     if (p.type === "autumn") this.drawAutumnLeaf(p);
@@ -842,99 +869,31 @@ class Climate {
     const sunY = this.height * 0.18;
     const sunR = Math.min(this.width, this.height) * 0.092;
     const intensity = this.state.intensity / 100;
-    const pulse = Math.sin(time * 0.002) * 0.04 + 1;
 
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
 
-    const skyGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, Math.max(this.width, this.height) * 0.8);
-    skyGlow.addColorStop(0, `rgba(255, 246, 196, ${0.32 + intensity * 0.22})`);
-    skyGlow.addColorStop(0.38, `rgba(251, 191, 36, ${0.10 + intensity * 0.08})`);
+    const skyGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, Math.max(this.width, this.height) * 0.72);
+    skyGlow.addColorStop(0, `rgba(255, 246, 196, ${0.30 + intensity * 0.18})`);
+    skyGlow.addColorStop(0.36, `rgba(251, 191, 36, ${0.08 + intensity * 0.06})`);
     skyGlow.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = skyGlow;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    for (let i = 0; i < 7; i++) {
-      const angle = -0.58 + i * 0.055 + Math.sin(time * 0.0009 + i) * 0.018;
-      const length = Math.max(this.width, this.height) * (0.72 + i * 0.035);
-      const endX = sunX - Math.cos(angle) * length;
-      const endY = sunY - Math.sin(angle) * length;
-      const ray = ctx.createLinearGradient(sunX, sunY, endX, endY);
-      ray.addColorStop(0, `rgba(255, 248, 205, ${0.18 + intensity * 0.16})`);
-      ray.addColorStop(0.5, `rgba(255, 229, 138, ${0.035 + intensity * 0.035})`);
-      ray.addColorStop(1, "rgba(255, 248, 205, 0)");
-
-      ctx.strokeStyle = ray;
-      ctx.lineWidth = 18 + i * 5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(sunX, sunY);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-    }
-
-    const rayCount = 24;
-    ctx.translate(sunX, sunY);
-    ctx.rotate(time * 0.00016);
-    for (let i = 0; i < rayCount; i++) {
-      const a = (i * Math.PI * 2) / rayCount;
-      const inner = sunR * 1.13;
-      const outer = sunR * (2.25 + Math.sin(time * 0.002 + i) * 0.22) * pulse;
-      ctx.strokeStyle = `rgba(255, 244, 189, ${0.10 + intensity * 0.2})`;
-      ctx.lineWidth = 2.15;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
-      ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
-      ctx.stroke();
-    }
-
-    const sunGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, sunR * 3.05);
+    const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunR * 3.05);
     sunGlow.addColorStop(0, "rgba(255, 255, 230, 1)");
     sunGlow.addColorStop(0.28, "rgba(255, 224, 102, 0.96)");
-    sunGlow.addColorStop(0.6, "rgba(251, 191, 36, 0.32)");
+    sunGlow.addColorStop(0.6, "rgba(251, 191, 36, 0.30)");
     sunGlow.addColorStop(1, "rgba(251, 191, 36, 0)");
     ctx.fillStyle = sunGlow;
     ctx.beginPath();
-    ctx.arc(0, 0, sunR * 3.05, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, sunR * 3.05, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = "rgba(255, 247, 205, 0.98)";
     ctx.beginPath();
-    ctx.arc(0, 0, sunR * 0.94, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, sunR * 0.94, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
-
-    this.drawLensArtifacts(sunX, sunY, intensity);
-  }
-
-  drawLensArtifacts(sunX, sunY, intensity) {
-    const ctx = this.ctx;
-    const targetX = this.width * 0.28;
-    const targetY = this.height * 0.68;
-    const artifacts = [
-      [0.22, 12, 0.22],
-      [0.38, 22, 0.14],
-      [0.56, 9, 0.18],
-      [0.72, 34, 0.08],
-      [0.86, 15, 0.12],
-    ];
-
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-
-    for (const [t, radius, alpha] of artifacts) {
-      const x = Utils.lerp(sunX, targetX, t);
-      const y = Utils.lerp(sunY, targetY, t);
-      const r = radius * (1 + intensity * 0.6);
-      const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-      grad.addColorStop(0, `rgba(255, 247, 205, ${alpha + intensity * 0.08})`);
-      grad.addColorStop(0.45, `rgba(125, 211, 252, ${(alpha * 0.44) + intensity * 0.03})`);
-      grad.addColorStop(1, "rgba(255, 247, 205, 0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
 
     ctx.restore();
   }
@@ -1069,23 +1028,54 @@ class Climate {
       ctx.stroke();
     }
 
-    ctx.globalAlpha = 0.12 + power * 0.11;
-    ctx.strokeStyle = "rgba(116, 74, 36, 0.72)";
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 3; i++) {
-      const cx = Utils.wrap(time * (0.025 + i * 0.01) * direction + i * this.width * 0.34, -180, this.width + 180);
-      const cy = this.height * (0.54 + i * 0.1);
-      const h = 150 + i * 24;
+    for (let i = 0; i < 4; i++) {
+      const cx = Utils.wrap(time * (0.030 + i * 0.012) * direction + i * this.width * 0.27, -220, this.width + 220);
+      const baseY = this.height * (0.82 - i * 0.055);
+      const h = 175 + i * 20;
+      const maxR = 34 + i * 10;
+
+      const column = ctx.createLinearGradient(cx, baseY - h, cx, baseY + 24);
+      column.addColorStop(0, "rgba(255, 230, 170, 0)");
+      column.addColorStop(0.45, `rgba(224, 157, 75, ${0.05 + power * 0.08})`);
+      column.addColorStop(1, `rgba(90, 55, 28, ${0.10 + power * 0.13})`);
+      ctx.fillStyle = column;
       ctx.beginPath();
-      for (let a = 0; a < Math.PI * 5; a += 0.25) {
-        const r = 9 + a * 5.2;
-        const x = cx + Math.cos(a + time * 0.006) * r;
-        const y = cy - h * (a / (Math.PI * 5)) + Math.sin(a) * 7;
-        if (a === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      ctx.ellipse(cx, baseY - h * 0.42, maxR * 0.92, h * 0.48, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let ring = 0; ring < 7; ring++) {
+        const t = ring / 6;
+        const y = baseY - h * t;
+        const wobble = Math.sin(time * 0.004 + i * 1.7 + ring) * 12;
+        const rx = Utils.lerp(maxR, 9, t);
+        const ry = Utils.lerp(7, 2.4, t);
+
+        ctx.globalAlpha = (0.10 + power * 0.18) * (1 - t * 0.54);
+        ctx.strokeStyle = ring % 2 === 0 ? "rgba(255, 226, 159, 0.72)" : "rgba(96, 58, 28, 0.58)";
+        ctx.lineWidth = Utils.lerp(2.4, 0.9, t);
+        ctx.beginPath();
+        ctx.ellipse(cx + wobble, y, rx, ry, time * 0.005 * direction + ring * 0.42, 0, Math.PI * 2);
+        ctx.stroke();
       }
-      ctx.stroke();
+
+      ctx.globalAlpha = 0.18 + power * 0.16;
+      ctx.strokeStyle = "rgba(255, 224, 159, 0.64)";
+      ctx.lineWidth = 1.15;
+      for (let ribbon = 0; ribbon < 3; ribbon++) {
+        ctx.beginPath();
+        for (let a = 0; a <= Math.PI * 5.8; a += 0.26) {
+          const t = a / (Math.PI * 5.8);
+          const r = Utils.lerp(maxR * 0.86, 8, t);
+          const x = cx + Math.cos(a * direction + time * 0.008 + ribbon * 2.1) * r;
+          const y = baseY - h * t + Math.sin(a * 0.8 + ribbon) * 4;
+          if (a === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
     }
+
+    ctx.globalAlpha = 1;
 
     ctx.restore();
   }
@@ -1173,7 +1163,7 @@ class Climate {
     const power = this.state.intensity / 100;
     this.state.lightningCooldown -= dt;
 
-    const lightningChance = Math.pow(power, 3.25) * 0.04;
+    const lightningChance = Math.pow(power, 3.25) * 0.016;
     if (power > 0.055 && this.state.lightningCooldown <= 0 && Utils.chance(lightningChance)) {
       this.createLightning();
       this.state.lightningCooldown = Utils.rand(
