@@ -1,7 +1,7 @@
 class Utils {
   static HandleString(str) {
     if (!str) return str;
-    return str.charAt(0).toUpperCase() + str.slice(1).replace("_", " ");
+    return str.charAt(0).toUpperCase() + str.slice(1).replaceAll("_", " ");
   }
 
   static rand(min, max) {

@@ -1,250 +1,297 @@
 :root {
-    --panel-bg: rgba(12, 18, 32, 0.72);
-    --panel-border: rgba(255, 255, 255, 0.16);
-    --text: #f8fafc;
-    --muted: #b9c4d6;
-    --accent: #7dd3fc;
+  --panel-bg: rgba(12, 18, 32, 0.72);
+  --panel-border: rgba(255, 255, 255, 0.16);
+  --text: #f8fafc;
+  --muted: #b9c4d6;
+  --accent: #7dd3fc;
 }
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 html,
 body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #0f172a;
-    color: var(--text);
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0f172a;
+  color: var(--text);
 }
 
 select,
 input[type="range"],
 button {
-    width: 100%;
-    border: none;
-    outline: none;
-    font: inherit;
+  width: 100%;
+  border: none;
+  outline: none;
+  font: inherit;
 }
 
 select {
-    padding: 13px 14px;
-    border-radius: 16px;
-    color: var(--text);
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    cursor: pointer;
+  padding: 13px 14px;
+  border-radius: 16px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
 }
 
 option {
-    background: #111827;
-    color: white;
+  background: #111827;
+  color: white;
 }
 
 input[type="range"] {
-    appearance: none;
-    height: 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
-    cursor: pointer;
+  appearance: none;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #7dd3fc, #fbbf24);
-    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.35);
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7dd3fc, #fbbf24);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.35);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7dd3fc, #fbbf24);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.35);
 }
 
 button {
-    color: #0f172a;
-    font-weight: 800;
-    margin-top: 18px;
-    padding: 13px 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.11);
-    background: linear-gradient(135deg, #7dd3fc, #fef3c7);
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+  color: #0f172a;
+  font-weight: 800;
+  margin-top: 18px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: linear-gradient(135deg, #7dd3fc, #fef3c7);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
 
-    &:hover {
-        transform: translateY(-1px);
-        background: #7dd3fc;
-    }
+button:hover {
+  transform: translateY(-1px);
+  background: #7dd3fc;
+}
 
-    &:active {
-        transform: translateY(-1px) scale(0.98);
-    }
+button:active {
+  transform: translateY(-1px) scale(0.98);
 }
 
 canvas {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-body {
-    &.sunny .cloud-layer {
-        opacity: 0.04;
-    }
+body.sunny .cloud-layer {
+  opacity: 0.04;
+}
 
-    &.rain .cloud-layer {
-        opacity: 0.35;
-    }
+body.rain .cloud-layer {
+  opacity: 0.35;
+}
 
-    &.storm .cloud-layer {
-        opacity: 0.95;
-    }
+body.storm .cloud-layer {
+  opacity: 0.95;
+}
 
-    &.snow .cloud-layer {
-        opacity: 0.58;
-        filter: blur(12px);
-    }
+body.snow .cloud-layer {
+  opacity: 0.22;
+  filter: blur(18px);
+  background:
+    radial-gradient(ellipse at 18% 16%, rgba(255, 255, 255, 0.2), transparent 38%),
+    radial-gradient(ellipse at 54% 12%, rgba(230, 244, 252, 0.18), transparent 42%),
+    radial-gradient(ellipse at 86% 20%, rgba(255, 255, 255, 0.18), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 48%);
+}
 
-    &.autumn .cloud-layer {
-        opacity: 0.16;
-    }
+body.autumn .cloud-layer {
+  opacity: 0.16;
+}
 
-    &.petals .cloud-layer {
-        opacity: 0.18;
-        filter: blur(10px);
-    }
+body.petals .cloud-layer {
+  opacity: 0.16;
+  filter: blur(10px);
 }
 
 .flash {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 2;
-    opacity: 0;
-    background: rgba(220, 238, 255, 0.95);
-    mix-blend-mode: screen;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  background: rgba(220, 238, 255, 0.95);
+  mix-blend-mode: screen;
 }
 
 .cloud-layer {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.35;
-    transition: opacity 0.7s ease;
-    background:
-        radial-gradient(ellipse at 15% 18%, rgba(255, 255, 255, 0.13), transparent 34%),
-        radial-gradient(ellipse at 45% 14%, rgba(255, 255, 255, 0.11), transparent 35%),
-        radial-gradient(ellipse at 82% 20%, rgba(255, 255, 255, 0.12), transparent 34%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 45%);
-    filter: blur(8px);
-    animation: cloudsMove 18s linear infinite alternate;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  transition: opacity 0.7s ease, filter 0.7s ease, background 0.7s ease;
+  background:
+    radial-gradient(ellipse at 15% 18%, rgba(255, 255, 255, 0.13), transparent 34%),
+    radial-gradient(ellipse at 45% 14%, rgba(255, 255, 255, 0.11), transparent 35%),
+    radial-gradient(ellipse at 82% 20%, rgba(255, 255, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 45%);
+  filter: blur(8px);
+  animation: cloudsMove 18s linear infinite alternate;
 }
 
 @keyframes cloudsMove {
-    from {
-        transform: translateX(-2%);
-    }
+  from {
+    transform: translateX(-2%);
+  }
 
-    to {
-        transform: translateX(3%);
-    }
+  to {
+    transform: translateX(3%);
+  }
 }
 
 .scene-glow {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-        radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.08), transparent 35%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 35%);
-    mix-blend-mode: screen;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.08), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 35%);
+  mix-blend-mode: screen;
+  transition: background 0.7s ease, opacity 0.7s ease;
+}
+
+body.snow .scene-glow {
+  opacity: 0.62;
+  background:
+    radial-gradient(circle at 50% 110%, rgba(255, 255, 255, 0.32), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(235, 246, 252, 0.08) 44%, transparent 75%);
+}
+
+body.sunny .scene-glow {
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255, 246, 196, 0.42), transparent 28%),
+    radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.08), transparent 35%);
 }
 
 .ground {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 95px;
-    pointer-events: none;
-    background:
-        linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.28)),
-        radial-gradient(ellipse at center bottom, rgba(255, 255, 255, 0.08), transparent 70%);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 95px;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.28)),
+    radial-gradient(ellipse at center bottom, rgba(255, 255, 255, 0.08), transparent 70%);
+  transition: background 0.7s ease, opacity 0.7s ease;
 }
 
-/* ------------------------------------------------------------------------------ */
-/* --------------------------------     PANEL     ------------------------------- */
-/* ------------------------------------------------------------------------------ */
+body.snow .ground {
+  opacity: 0.45;
+  background:
+    linear-gradient(180deg, transparent, rgba(185, 209, 220, 0.16)),
+    radial-gradient(ellipse at center bottom, rgba(255, 255, 255, 0.34), transparent 72%);
+}
+
 aside.panel {
-    position: fixed;
-    left: 24px;
-    top: 24px;
+  position: fixed;
+  left: 24px;
+  top: 24px;
+  width: 390px;
+  padding: 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  z-index: 5;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
 
-    width: 390px;
-    padding: 18px;
-    border: 1px solid var(--panel-border);
-    border-radius: 24px;
-    background: var(--panel-bg);
-    backdrop-filter: blur(20px);
-    z-index: 5;
-    box-shadow:
-        0 24px 70px rgba(0, 0, 0, 0.38),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+.panel-header {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
 
-    .panel-header {
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
+.panel-header h1 {
+  font-size: 1.6em;
+  letter-spacing: -2px;
+  line-height: 0.95;
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
 
-        h1 {
-            font-size: 1.6em;
-            letter-spacing: -2px;
-            line-height: 0.95;
-            text-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
-        }
+.badge {
+  background: linear-gradient(135deg, #7dd3fc, #fef3c7);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #0f172a;
+  font-weight: 800;
+  white-space: nowrap;
+}
 
-        .badge {
-            background: linear-gradient(135deg, #7dd3fc, #fef3c7);
-            border-radius: 999px;
-            padding: 7px 10px;
-            font-size: 12px;
-            color: #0f172a;
-            font-weight: 800;
-            white-space: nowrap;
-        }
-    }
+.control {
+  margin-top: 14px;
+}
 
-    .control {
-        margin-top: 14px;
+.control label {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
 
-        label {
-            margin-bottom: 8px;
-            color: var(--muted);
-            font-size: 13px;
-
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-
-            span:last-child {
-                color: var(--text);
-                font-weight: 700;
-            }
-        }
-    }
+.control label span:last-child {
+  color: var(--text);
+  font-weight: 700;
 }
 
 @media (max-width: 720px) {
-    /* FAZER UM DESIGN PARA O USUÁRIO INFORMANDO QUE É NECESSÁRIO UMA VIEWPORT(TELA) DE LARGURA MAIOR*/
-    body {
-        display: none;
-    }
+  body::before {
+    content: "Use uma tela maior para visualizar os controles climáticos.";
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 30px;
+    text-align: center;
+    font-weight: 800;
+    background: #0f172a;
+    color: white;
+    z-index: 999;
+  }
+
+  canvas,
+  .cloud-layer,
+  .flash,
+  .scene-glow,
+  .ground,
+  aside.panel {
+    display: none;
+  }
 }
