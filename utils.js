@@ -1,24 +1,64 @@
 class Utils {
-  static HandleString(str) {
-    if (!str) return str;
-    return str.charAt(0).toUpperCase() + str.slice(1).replaceAll("_", " ");
-  }
-
   static rand(min, max) {
     return Math.random() * (max - min) + min;
+  }
+
+  static randInt(min, max) {
+    return Math.floor(Utils.rand(min, max + 1));
+  }
+
+  static chance(probability) {
+    return Math.random() < probability;
+  }
+
+  static pick(items) {
+    return items[Math.floor(Math.random() * items.length)];
   }
 
   static clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
 
+  static lerp(a, b, t) {
+    return a + (b - a) * Utils.clamp(t, 0, 1);
+  }
+
+  static map(value, inMin, inMax, outMin, outMax) {
+    if (inMax === inMin) return outMin;
+    const t = (value - inMin) / (inMax - inMin);
+    return Utils.lerp(outMin, outMax, t);
+  }
+
+  static degToRad(degrees) {
+    return (degrees * Math.PI) / 180;
+  }
+
+  static normalizeLabel(str) {
+    if (!str) return str;
+    return String(str)
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  static handleString(str) {
+    return Utils.normalizeLabel(str);
+  }
+
+  static HandleString(str) {
+    return Utils.normalizeLabel(str);
+  }
+
   static getWindVector(windDirection, windPower) {
     const p = windPower / 100;
-    if (windDirection === "right") return { x: 7 * p, y: 0 };
-    if (windDirection === "left") return { x: -7 * p, y: 0 };
-    if (windDirection === "diagonal_right") return { x: 6 * p, y: 2.2 * p };
-    if (windDirection === "diagonal_left") return { x: -6 * p, y: 2.2 * p };
-    if (windDirection === "swirl") return { x: 4.5 * p, y: 0, swirl: true };
-    return { x: 0, y: 0 };
+
+    const vectors = {
+      right: { x: 7 * p, y: 0, swirl: false },
+      left: { x: -7 * p, y: 0, swirl: false },
+      diagonal_right: { x: 6 * p, y: 2.2 * p, swirl: false },
+      diagonal_left: { x: -6 * p, y: 2.2 * p, swirl: false },
+      swirl: { x: 4.5 * p, y: 0, swirl: true },
+    };
+
+    return vectors[windDirection] || { x: 0, y: 0, swirl: false };
   }
 }
